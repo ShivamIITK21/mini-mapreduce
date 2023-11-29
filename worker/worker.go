@@ -3,6 +3,7 @@ package worker
 import (
 	"log"
 	"net/rpc"
+	"sync"
 
 	"github.com/ShivamIITK21/mini-mapreduce/core"
 )
@@ -10,10 +11,12 @@ import (
 type Worker struct {
 	master	string
 	Port	string
+	Wg		sync.WaitGroup
 }
 
 func New(Port string) *Worker{
-	w := &Worker{Port: Port}
+	w := &Worker{Port: Port, master: "", Wg: sync.WaitGroup{}}
+	w.Wg.Add(1)
 	return w
 }
 

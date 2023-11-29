@@ -6,25 +6,36 @@ import (
 	"net/http"
 	"net/rpc"
 	"os"
-	"sync"
+	"time"
 
 	"github.com/ShivamIITK21/mini-mapreduce/worker"
 )
 
 func main() {
-	ports := os.Args[1:]
+	port := os.Args[1]
 
-	var wg sync.WaitGroup
-	wg.Add(1)
-	for _, port := range ports {
-		worker := worker.New(port)
-		rpc.Register(worker)
-		rpc.HandleHTTP()
-		l, err := net.Listen("tcp", worker.Port)
-		if err != nil {
-			log.Fatal("listen error:", err)
-		}
-		go http.Serve(l, nil)
+	worker := worker.New(port)
+	rpc.Register(worker)
+	rpc.HandleHTTP()
+	l, err := net.Listen("tcp", worker.Port)
+	if err != nil {
+		log.Fatal("listen error:", err)
 	}
-	wg.Wait()
+	go http.Serve(l, nil)
+
+	worker.Wg.Wait()
+
+	for {
+		task, err := worker.AskForTask()
+		if err != nil {
+			log.Printf("Error in fetching task\n")
+		}
+		if(task.File == ""){
+			log.Printf("No Open task was available\n")
+		} else {
+			log.Printf("Recived task on %s\n", task.File)
+		}
+		time.Sleep(5*time.Second)
+	}
+
 }

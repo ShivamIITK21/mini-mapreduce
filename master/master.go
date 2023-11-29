@@ -16,14 +16,14 @@ type WorkerInfo struct{
 }
 
 type Master struct {
-	port    		string
+	Port    		string
 	Workers 		map[string]WorkerInfo
 	mu				sync.RWMutex
 	Tasks			map[int]core.Task
 }
 
 func New(port string) *Master{
-	m := &Master{port: port, Workers: make(map[string]WorkerInfo), Tasks: make(map[int]core.Task)}
+	m := &Master{Port: port, Workers: make(map[string]WorkerInfo), Tasks: make(map[int]core.Task)}
 	return m
 }
 
@@ -34,7 +34,7 @@ func (m *Master) CallWorker(port string) {
 		return
 	}
 	var status int
-	err = client.Call("Worker.AssignMaster", m.port, &status)
+	err = client.Call("Worker.AssignMaster", m.Port, &status)
 	if err != nil {
 		log.Printf("Error in Calling %s\n", port)
 		return

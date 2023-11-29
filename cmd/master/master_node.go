@@ -5,6 +5,10 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"net/rpc"
+	"net"
+	"net/http"
+	"log"
 
 	"github.com/ShivamIITK21/mini-mapreduce/master"
 )
@@ -28,6 +32,14 @@ func main() {
 	
 	master_port, worker_ports, input_files := getArgs()
 	m := master.New(master_port)
+
+	rpc.Register(m)
+	rpc.HandleHTTP()
+	l, err := net.Listen("tcp", m.Port)
+	if err != nil {
+		log.Fatal("listen error:", err)
+	}
+	go http.Serve(l, nil)
 
 	var wg sync.WaitGroup
 	wg.Add(1)
