@@ -1,6 +1,7 @@
 package master
 
 import (
+	"fmt"
 	"log"
 	"net/rpc"
 	"sync"
@@ -10,20 +11,19 @@ import (
 )
 
 type WorkerInfo struct{
-	Port	string
 	Client	*rpc.Client
+	Status	int
 }
 
 type Master struct {
 	port    		string
-	Workers 		[]*WorkerInfo
-	WorkerClient 	map[string]*rpc.Client
+	Workers 		map[string]WorkerInfo
 	mu				sync.RWMutex
 	Tasks			map[int]core.Task
 }
 
 func New(port string) *Master{
-	m := &Master{port: port, WorkerClient: make(map[string]*rpc.Client), Tasks: make(map[int]core.Task)}
+	m := &Master{port: port, Workers: make(map[string]WorkerInfo), Tasks: make(map[int]core.Task)}
 	return m
 }
 
@@ -42,8 +42,13 @@ func (m *Master) CallWorker(port string) {
 
 	if status == 1{
 		m.mu.Lock()
-		m.Workers = append(m.Workers, &WorkerInfo{Port: port, Client: client})
-		m.WorkerClient[port] = client
+		if worker, ok := m.Workers[port]; ok {
+			worker.Status = core.IDLE
+			worker.Client = client
+			m.Workers[port] = worker
+		} else {
+			m.Workers[port] = WorkerInfo{Client: client, Status: core.IDLE}
+		}
 		log.Printf("Got a reply from %s\n", port)
 		m.mu.Unlock()
 		return
@@ -69,25 +74,37 @@ func (m *Master)CallAllWorkers(ports []string){
 }
 
 func (m *Master)pingWorkerPeriodically(port string){
-	client := m.WorkerClient[port]
 	for {
+		m.mu.RLock()
+		client := m.Workers[port].Client
+		m.mu.RUnlock()
 		var status int
 		err := client.Call("Worker.Ping", 0, &status)
 		if err != nil || status != 1{
 			log.Printf("Error in pinging %s\n", port)
+			log.Println(err.Error())
 			m.mu.Lock()
-			delete(m.WorkerClient, port)
+			if offline_worker, ok := m.Workers[port]; ok {
+				offline_worker.Status = core.OFFLINE
+				m.Workers[port] = offline_worker
+			}
 			m.mu.Unlock()
-			return
+			m.CallWorker(port)
 		} else {
 			log.Printf("Pinged %s successfully\n", port)
-			time.Sleep(5*time.Second)
 		}
+		time.Sleep(5*time.Second)
 	}
 }
 
 func (m* Master)PingAllWorkers(){
-	for port := range m.WorkerClient {
+	var ports []string
+	m.mu.RLock()
+	for port := range m.Workers {
+		ports = append(ports, port)
+	}
+	m.mu.RUnlock()
+	for _, port := range ports {
 		p := port
 		go m.pingWorkerPeriodically(p)
 	}

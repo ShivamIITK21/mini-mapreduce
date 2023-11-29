@@ -7,6 +7,7 @@ const(
 
 	IDLE
 	BUSY
+	OFFLINE
 
 	MAP
 	REDUCE

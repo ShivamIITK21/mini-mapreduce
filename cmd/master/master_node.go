@@ -32,9 +32,6 @@ func main() {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	m.CallAllWorkers(worker_ports)
-	for _, w := range m.Workers {
-		fmt.Printf("%s ", w.Port)
-	}
 	go m.PingAllWorkers()
 	m.StoreMapTasks(input_files)
 	fmt.Println(m.Tasks)
