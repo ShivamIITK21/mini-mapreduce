@@ -5,6 +5,8 @@ import (
 	"net/rpc"
 	"sync"
 	"time"
+
+	"github.com/ShivamIITK21/mini-mapreduce/core"
 )
 
 type WorkerInfo struct{
@@ -17,10 +19,11 @@ type Master struct {
 	Workers 		[]*WorkerInfo
 	WorkerClient 	map[string]*rpc.Client
 	mu				sync.RWMutex
+	MapTasks		map[int]core.Task
 }
 
 func New(port string) *Master{
-	m := &Master{port: port, WorkerClient: make(map[string]*rpc.Client)}
+	m := &Master{port: port, WorkerClient: make(map[string]*rpc.Client), MapTasks: make(map[int]core.Task)}
 	return m
 }
 
@@ -87,5 +90,11 @@ func (m* Master)PingAllWorkers(){
 	for port := range m.WorkerClient {
 		p := port
 		go m.pingWorkerPeriodically(p)
+	}
+}
+
+func (m* Master)StoreMapTasks(files []string){
+	for idx, file := range files {
+		m.MapTasks[idx] = core.Task{File: file, Status: core.UNASSIGNED, Type: core.MAP}
 	}
 }
