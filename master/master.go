@@ -19,11 +19,11 @@ type Master struct {
 	Workers 		[]*WorkerInfo
 	WorkerClient 	map[string]*rpc.Client
 	mu				sync.RWMutex
-	MapTasks		map[int]core.Task
+	Tasks			map[int]core.Task
 }
 
 func New(port string) *Master{
-	m := &Master{port: port, WorkerClient: make(map[string]*rpc.Client), MapTasks: make(map[int]core.Task)}
+	m := &Master{port: port, WorkerClient: make(map[string]*rpc.Client), Tasks: make(map[int]core.Task)}
 	return m
 }
 
@@ -95,6 +95,6 @@ func (m* Master)PingAllWorkers(){
 
 func (m* Master)StoreMapTasks(files []string){
 	for idx, file := range files {
-		m.MapTasks[idx] = core.Task{File: file, Status: core.UNASSIGNED, Type: core.MAP}
+		m.Tasks[idx] = core.Task{File: file, Status: core.UNASSIGNED, Type: core.MAP}
 	}
 }

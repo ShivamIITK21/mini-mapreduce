@@ -37,6 +37,6 @@ func main() {
 	}
 	go m.PingAllWorkers()
 	m.StoreMapTasks(input_files)
-	fmt.Println(m.MapTasks)
+	fmt.Println(m.Tasks)
 	wg.Wait()
 }
