@@ -2,18 +2,25 @@ package master
 
 import "github.com/ShivamIITK21/mini-mapreduce/core"
 
-func (m *Master) RespondToTaskRequest(_ int, file_name *string) error {
-	*file_name = ""
+func (m *Master) RespondToTaskRequest(worker_port string, task_ptr *core.Task) error {
+	(*task_ptr).File = ""
+	m.mu.Lock()
 	for idx, task := range m.Tasks {
 		if(task.Status == core.UNASSIGNED) {
-			m.mu.Lock()
 			if open_task, ok := m.Tasks[idx]; ok {
 				open_task.Status = core.ASSIGNED
 				m.Tasks[idx] = open_task
+				(*task_ptr).File = open_task.File
+				(*task_ptr).Type = open_task.Type
+				
+				if worker, ok := m.Workers[worker_port]; ok {
+					worker.Doing = idx
+					m.Workers[worker_port] = worker
+				}
 			}
-			*file_name = m.Tasks[idx].File
-			m.mu.Unlock()
+			break
 		}
 	}
+	m.mu.Unlock()
 	return nil
 }

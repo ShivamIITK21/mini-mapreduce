@@ -12,6 +12,7 @@ import (
 type WorkerInfo struct{
 	Client	*rpc.Client
 	Status	int
+	Doing	int
 }
 
 type Master struct {
@@ -44,9 +45,10 @@ func (m *Master) CallWorker(port string) {
 		if worker, ok := m.Workers[port]; ok {
 			worker.Status = core.IDLE
 			worker.Client = client
+			worker.Doing = -1
 			m.Workers[port] = worker
 		} else {
-			m.Workers[port] = WorkerInfo{Client: client, Status: core.IDLE}
+			m.Workers[port] = WorkerInfo{Client: client, Status: core.IDLE, Doing: -1}
 		}
 		log.Printf("Got a reply from %s\n", port)
 		m.mu.Unlock()
@@ -81,7 +83,6 @@ func (m *Master)pingWorkerPeriodically(port string){
 		err := client.Call("Worker.Ping", 0, &status)
 		if err != nil || status != 1{
 			log.Printf("Error in pinging %s\n", port)
-			log.Println(err.Error())
 			m.mu.Lock()
 			if offline_worker, ok := m.Workers[port]; ok {
 				offline_worker.Status = core.OFFLINE
