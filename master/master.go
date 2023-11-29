@@ -1,7 +1,6 @@
 package master
 
 import (
-	"fmt"
 	"log"
 	"net/rpc"
 	"sync"
