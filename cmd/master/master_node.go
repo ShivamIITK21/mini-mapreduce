@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"strings"
-	"sync"
 	"net/rpc"
 	"net"
 	"net/http"
@@ -41,11 +40,11 @@ func main() {
 	}
 	go http.Serve(l, nil)
 
-	var wg sync.WaitGroup
-	wg.Add(1)
+	
 	m.CallAllWorkers(worker_ports)
 	go m.PingAllWorkers()
 	m.StoreMapTasks(input_files)
 	fmt.Println(m.Tasks)
-	wg.Wait()
+
+	for{}
 }

@@ -13,8 +13,9 @@ import (
 
 func main() {
 	port := os.Args[1]
+	pluginName := os.Args[2]
 
-	worker := worker.New(port)
+	worker := worker.New(port, pluginName)
 	rpc.Register(worker)
 	rpc.HandleHTTP()
 	l, err := net.Listen("tcp", worker.Port)

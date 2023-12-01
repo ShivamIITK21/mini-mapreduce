@@ -112,6 +112,6 @@ func (m* Master)PingAllWorkers(){
 
 func (m* Master)StoreMapTasks(files []string){
 	for idx, file := range files {
-		m.Tasks[idx] = core.Task{File: file, Status: core.UNASSIGNED, Type: core.MAP}
+		m.Tasks[idx] = core.Task{File: file, Status: core.UNASSIGNED, Type: core.MAP, Id: idx}
 	}
 }
