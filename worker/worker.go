@@ -55,7 +55,8 @@ func (w *Worker) DoTask(task core.Task) error {
 		fileContent := string(file)
 		kva := w.Map(task.File, fileContent)
 
-		oname := "mr-" + strconv.Itoa(task.Id)
+		oname := "mr-" + strconv.Itoa(task.Id) + ".txt"
+		os.Remove(oname)
 		oFile, err := os.Create(oname)
 		if err != nil {
 			return err

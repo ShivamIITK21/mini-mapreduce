@@ -35,8 +35,10 @@ func main() {
 			log.Printf("No Open task was available\n")
 		} else {
 			log.Printf("Recived task on %s\n", task.File)
+			err := worker.DoTask(task)
+			log.Print(err)
 		}
-		time.Sleep(5*time.Second)
+		time.Sleep(1*time.Second)
 	}
 
 }
