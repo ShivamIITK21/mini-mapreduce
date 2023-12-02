@@ -14,6 +14,7 @@ import (
 func main() {
 	port := os.Args[1]
 	pluginName := os.Args[2]
+	log.Print(pluginName)
 
 	worker := worker.New(port, pluginName)
 	rpc.Register(worker)

@@ -3,7 +3,9 @@ package master
 import (
 	"log"
 	"net/rpc"
+	"os"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/ShivamIITK21/mini-mapreduce/core"
@@ -20,6 +22,7 @@ type Master struct {
 	Workers 		map[string]WorkerInfo
 	mu				sync.RWMutex
 	Tasks			map[int]core.Task
+	TaskCounter		atomic.Int32
 }
 
 func New(port string) *Master{
@@ -111,7 +114,20 @@ func (m* Master)PingAllWorkers(){
 }
 
 func (m* Master)StoreMapTasks(files []string){
+	m.TaskCounter.Add(int32(len(files)))
 	for idx, file := range files {
 		m.Tasks[idx] = core.Task{File: file, Status: core.UNASSIGNED, Type: core.MAP, Id: idx}
+	}
+}
+
+func (m *Master)CheckCompletion(){
+	for {
+		val := m.TaskCounter.Load()
+		log.Print(val)
+		if(val == 0) {
+			log.Printf("All Map tasks done, exiting....")
+			os.Exit(0)
+		}
+		time.Sleep(5*time.Second)
 	}
 }

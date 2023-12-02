@@ -41,9 +41,11 @@ func main() {
 	go http.Serve(l, nil)
 
 	
-	m.CallAllWorkers(worker_ports)
-	go m.PingAllWorkers()
 	m.StoreMapTasks(input_files)
+	m.CallAllWorkers(worker_ports)
+	
+	go m.PingAllWorkers()
+	go m.CheckCompletion()
 	fmt.Println(m.Tasks)
 
 	for{}

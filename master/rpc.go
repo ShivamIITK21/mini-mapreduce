@@ -25,3 +25,15 @@ func (m *Master) RespondToTaskRequest(worker_port string, task_ptr *core.Task) e
 	m.mu.Unlock()
 	return nil
 }
+
+func(m *Master) TaskDone(task core.Task, ok *int) error {
+	m.mu.Lock()
+	if completed_task, ok := m.Tasks[task.Id]; ok {
+		completed_task.Status = core.COMPLETED
+		m.Tasks[task.Id] = completed_task
+	}
+	m.mu.Unlock()
+	m.TaskCounter.Add(-1)
+	*ok = 1
+	return nil
+}

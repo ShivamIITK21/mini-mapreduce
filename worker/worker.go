@@ -72,3 +72,5 @@ func (w *Worker) DoTask(task core.Task) error {
 
 	return nil
 }
+
+// func (w *Worker) InformCompletion(task core.Task) error
