@@ -1,8 +1,12 @@
 package master
 
 import (
+	"io"
 	"log"
 	"net/rpc"
+	"os"
+	"path/filepath"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -38,7 +42,7 @@ func (m *Master) CallWorker(port string) {
 		return
 	}
 	var status int
-	err = client.Call("Worker.AssignMaster", core.SharedInfo{Port: m.Port, NReduce: m.NReduce}, &status)
+	err = client.Call("Worker.AssignMaster", core.SharedInfo{Port: m.Port, NReduce: m.NReduce, NMap: m.NMap}, &status)
 	if err != nil {
 		log.Printf("Error in Calling %s\n", port)
 		return
@@ -123,13 +127,67 @@ func (m* Master)StoreMapTasks(files []string){
 }
 
 func (m *Master)CheckCompletion(){
+	cnt := 0
 	for {
 		val := m.TaskCounter.Load()
 		log.Print(val)
 		if(val == 0) {
-			log.Printf("All Map tasks done, preparing for Reduce....")
+			if(cnt == 0){
+				log.Printf("All Map tasks done, preparing for Reduce....")
+				cnt++
+				m.PrepareForReduce()
+			} else{
+				m.mu.Lock()
+				m.CombineOutputs()
+				log.Printf("MapReduce Completed, output is in output.txt")
+				m.CleanUp()
+				os.Exit(0)
+				m.mu.Lock()
+			}
+
 		}
 		time.Sleep(5*time.Second)
 	}
 }
 
+func (m *Master)PrepareForReduce(){
+	m.TaskCounter.Add(int32(m.NReduce))
+	m.mu.Lock()
+	for idx := 0; idx < m.NReduce; idx++ {	
+		m.Tasks[m.NMap + idx] = core.Task{File: "", Status: core.UNASSIGNED, Type: core.REDUCE, Id: idx}	
+	}
+	m.mu.Unlock()
+}
+
+
+func (m *Master)CombineOutputs(){
+	os.Remove("output.txt")
+	out, err := os.OpenFile("output.txt", os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Fatalf("Failed to create output file\n")
+	}
+	defer out.Close()
+
+	for i := 0; i < m.NReduce; i++ {
+		fname := "mr-ouput-" + strconv.Itoa(i) + ".txt"
+		file, err := os.Open(fname)
+		defer file.Close()
+		if err != nil {
+			log.Fatalf("Can't Open output file\n")
+		}
+
+		n, err := io.Copy(out, file)
+		if err != nil {
+			log.Fatalf("Unable to copy from reduce output\n")
+		}
+		log.Printf("Copied %d bytes from %s", n, fname)
+
+	}
+}
+
+func (m *Master) CleanUp(){
+	files, _ := filepath.Glob("mr*")
+	for _, f := range files {
+		os.Remove(f)
+	}
+}

@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/ShivamIITK21/mini-mapreduce/core"
 	"github.com/ShivamIITK21/mini-mapreduce/worker"
 )
 
@@ -32,7 +33,7 @@ func main() {
 		if err != nil {
 			log.Printf("Error in fetching task\n")
 		}
-		if(task.File == ""){
+		if(task.File == "" && task.Type != core.REDUCE){
 			log.Printf("No Open task was available\n")
 		} else {
 			log.Printf("Recived task on %s\n", task.File)

@@ -1,10 +1,12 @@
 package worker
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"net/rpc"
 	"os"
+	"sort"
 	"strconv"
 	"sync"
 
@@ -16,6 +18,7 @@ type Worker struct {
 	Port	string
 	Wg		sync.WaitGroup
 	Nreduce	int
+	NMap	int
 	Map		func(string, string) []core.KeyValue
 	Reduce	func(string, []string) string
 }
@@ -65,6 +68,7 @@ func (w *Worker) DoTask(task core.Task) error {
 			oname := "mr-" + strconv.Itoa(task.Id) + "-" + strconv.Itoa(i) + ".txt"
 			os.Remove(oname)
 			oFile, err := os.Create(oname)
+			defer oFile.Close()
 			if err != nil {
 				return err
 			}
@@ -77,6 +81,53 @@ func (w *Worker) DoTask(task core.Task) error {
 		}
 
 	} else if(task.Type == core.REDUCE) {
+		reduceId := task.Id
+		var kvs []core.KeyValue
+
+		for i := 0; i < w.NMap; i++ {
+			fname := "mr-" + strconv.Itoa(i) + "-" + strconv.Itoa(reduceId) + ".txt"
+			file, err := os.Open(fname)
+			if err != nil{
+				return err
+			}
+			defer file.Close()
+
+			scanner := bufio.NewScanner(file)
+			for scanner.Scan() {
+				var key string
+				var val	string
+				fmt.Sscanf(scanner.Text(), "%s %s\n", &key, &val)
+				kvs = append(kvs, core.KeyValue{Key: key, Value: val})
+			}
+		}
+
+		sort.Sort(core.ByKey(kvs))
+
+		oname := "mr-ouput-" + strconv.Itoa(task.Id) + ".txt"
+		ofile, err := os.Create(oname)
+		defer ofile.Close()
+		if err != nil {
+			return err
+		}
+
+
+		i := 0
+		for i < len(kvs) {
+			j := i + 1
+			for j < len(kvs) && kvs[j].Key == kvs[i].Key {
+				j++
+			}
+			values := []string{}
+			for k := i; k < j; k++ {
+				values = append(values, kvs[k].Value)
+			}
+			output := w.Reduce(kvs[i].Key, values)
+
+			// this is the correct format for each line of Reduce output.
+			fmt.Fprintf(ofile, "%v %v\n", kvs[i].Key, output)
+
+			i = j
+		}
 
 	}
 

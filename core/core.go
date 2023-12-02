@@ -9,6 +9,7 @@ import (
 type SharedInfo struct{
 	Port		string
 	NReduce		int
+	NMap		int
 }
 
 type Task struct{
@@ -22,6 +23,14 @@ type KeyValue struct{
 	Key			string
 	Value		string
 }
+
+// for sorting by key.
+type ByKey []KeyValue
+
+// for sorting by key.
+func (a ByKey) Len() int           { return len(a) }
+func (a ByKey) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a ByKey) Less(i, j int) bool { return a[i].Key < a[j].Key }
 
 func ReadMapReduceFuncs(filename string) (func(string, string) []KeyValue, func(string, []string) string) {
 	p, err := plugin.Open(filename)
