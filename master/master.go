@@ -3,7 +3,6 @@ package master
 import (
 	"log"
 	"net/rpc"
-	"os"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -23,10 +22,12 @@ type Master struct {
 	mu				sync.RWMutex
 	Tasks			map[int]core.Task
 	TaskCounter		atomic.Int32
+	NMap			int
+	NReduce 		int
 }
 
-func New(port string) *Master{
-	m := &Master{Port: port, Workers: make(map[string]WorkerInfo), Tasks: make(map[int]core.Task)}
+func New(port string, nreduce int) *Master{
+	m := &Master{Port: port, Workers: make(map[string]WorkerInfo), Tasks: make(map[int]core.Task), NReduce: nreduce}
 	return m
 }
 
@@ -37,7 +38,7 @@ func (m *Master) CallWorker(port string) {
 		return
 	}
 	var status int
-	err = client.Call("Worker.AssignMaster", m.Port, &status)
+	err = client.Call("Worker.AssignMaster", core.SharedInfo{Port: m.Port, NReduce: m.NReduce}, &status)
 	if err != nil {
 		log.Printf("Error in Calling %s\n", port)
 		return
@@ -114,6 +115,7 @@ func (m* Master)PingAllWorkers(){
 }
 
 func (m* Master)StoreMapTasks(files []string){
+	m.NMap = len(files)
 	m.TaskCounter.Add(int32(len(files)))
 	for idx, file := range files {
 		m.Tasks[idx] = core.Task{File: file, Status: core.UNASSIGNED, Type: core.MAP, Id: idx}
@@ -125,9 +127,9 @@ func (m *Master)CheckCompletion(){
 		val := m.TaskCounter.Load()
 		log.Print(val)
 		if(val == 0) {
-			log.Printf("All Map tasks done, exiting....")
-			os.Exit(0)
+			log.Printf("All Map tasks done, preparing for Reduce....")
 		}
 		time.Sleep(5*time.Second)
 	}
 }
+

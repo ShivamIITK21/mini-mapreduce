@@ -3,7 +3,13 @@ package core
 import (
 	"log"
 	"plugin"
+	"hash/fnv"
 )
+
+type SharedInfo struct{
+	Port		string
+	NReduce		int
+}
 
 type Task struct{
 	File		string
@@ -35,3 +41,9 @@ func ReadMapReduceFuncs(filename string) (func(string, string) []KeyValue, func(
 
 	return mapf, reducef
 } 
+
+func Ihash(key string) int {
+	h := fnv.New32a()
+	h.Write([]byte(key))
+	return int(h.Sum32() & 0x7fffffff)
+}

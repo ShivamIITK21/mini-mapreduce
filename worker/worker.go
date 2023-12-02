@@ -15,6 +15,7 @@ type Worker struct {
 	master	string
 	Port	string
 	Wg		sync.WaitGroup
+	Nreduce	int
 	Map		func(string, string) []core.KeyValue
 	Reduce	func(string, []string) string
 }
@@ -46,6 +47,10 @@ func (w *Worker) AskForTask() (core.Task, error) {
 	return recievedTask, nil
 }
 
+func (w *Worker) Hash(key string) int {
+	return core.Ihash(key)%w.Nreduce
+}
+
 func (w *Worker) DoTask(task core.Task) error {
 	if(task.Type == core.MAP) {
 		file, err := os.ReadFile(task.File)
@@ -55,15 +60,20 @@ func (w *Worker) DoTask(task core.Task) error {
 		fileContent := string(file)
 		kva := w.Map(task.File, fileContent)
 
-		oname := "mr-" + strconv.Itoa(task.Id) + ".txt"
-		os.Remove(oname)
-		oFile, err := os.Create(oname)
-		if err != nil {
-			return err
+		var oFiles []*os.File
+		for i := 0; i < w.Nreduce; i++ {
+			oname := "mr-" + strconv.Itoa(task.Id) + "-" + strconv.Itoa(i) + ".txt"
+			os.Remove(oname)
+			oFile, err := os.Create(oname)
+			if err != nil {
+				return err
+			}
+			oFiles = append(oFiles, oFile)
 		}
 
 		for _, kv := range kva {
-			fmt.Fprintf(oFile, "%s %s\n", kv.Key, kv.Value)
+			nR := w.Hash(kv.Key)
+			fmt.Fprintf(oFiles[nR], "%s %s\n", kv.Key, kv.Value)
 		}
 
 	} else if(task.Type == core.REDUCE) {

@@ -1,10 +1,15 @@
 package worker
 
-import "log"
+import (
+	"log"
 
-func(w *Worker) AssignMaster(m_port string, status *int) error {
+	"github.com/ShivamIITK21/mini-mapreduce/core"
+)
+
+func(w *Worker) AssignMaster(info core.SharedInfo, status *int) error {
 	*status = 1
-	w.master = m_port
+	w.master = info.Port
+	w.Nreduce = info.NReduce
 	w.Wg.Done()
 	log.Printf("%s got assigned a master\n", w.Port)
 	return nil
