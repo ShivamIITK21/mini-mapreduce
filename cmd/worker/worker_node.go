@@ -37,6 +37,7 @@ func main() {
 		} else {
 			log.Printf("Recived task on %s\n", task.File)
 			err := worker.DoTask(task)
+			err = worker.InformCompletion(task)
 			log.Print(err)
 		}
 		time.Sleep(1*time.Second)

@@ -73,4 +73,20 @@ func (w *Worker) DoTask(task core.Task) error {
 	return nil
 }
 
-// func (w *Worker) InformCompletion(task core.Task) error
+func (w *Worker) InformCompletion(task core.Task) error {
+	var ok int
+
+	client, err := rpc.DialHTTP("tcp", w.master)
+	if err != nil {
+		log.Printf("Could not Dial to %s\n", w.master)
+		return err
+	}
+
+	err = client.Call("Master.TaskDone", task, &ok)
+	if err != nil {
+		log.Printf("Error in Calling %s\n", w.master)
+		return err
+	}
+
+	return nil
+}
